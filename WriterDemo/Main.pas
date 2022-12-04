@@ -65,10 +65,11 @@ end;
 
 procedure TFrmMain.BtnCreateTarClick(Sender: TObject);
 begin
-  IF EdtTarFilename.Text = '' THEN BEGIN
+  IF EdtTarFilename.Text = '' THEN
+  BEGIN
     ShowMessage ('Please enter the tar file''s name first');
     EXIT;
-    END;
+  END;
   FreeAndNil (FTarWriter);
   FTarWriter := TTarWriter.Create (EdtTarFilename.Text);
 
@@ -87,10 +88,11 @@ end;
 
 procedure TFrmMain.BtnAddClick(Sender: TObject);
 begin
-  IF Not Assigned (FTarWriter) THEN BEGIN
+  IF Not Assigned (FTarWriter) THEN
+  BEGIN
     ShowMessage ('Please create tar file first.');
     EXIT;
-    END;
+  END;
   IF NOT DlgFile.Execute THEN EXIT;
 
   LblStatus.Caption := 'Adding file ...';
@@ -98,7 +100,7 @@ begin
     FTarWriter.AddFile (DlgFile.Filename);
   FINALLY
     LblStatus.Caption := '';
-    END;
+  END;
 end;
 
 procedure TFrmMain.FormShow(Sender: TObject);

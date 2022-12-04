@@ -66,7 +66,7 @@ IMPLEMENTATION
 
 procedure TFrmMain.ActExitExecute(Sender: TObject);
 begin
-  Close
+  Close;
 end;
 
 procedure TFrmMain.ActFileOpenExecute(Sender: TObject);
@@ -86,7 +86,8 @@ begin
     TRY
       TA.Reset;
       Bytes := 0;
-      WHILE TA.FindNext (DirRec) DO BEGIN
+      WHILE TA.FindNext (DirRec) DO
+      BEGIN
         Item := LvwFiles.Items.Add;
         Item.Caption := string (DirRec.Name);
         Item.SubItems.Add (IntToStr (DirRec.Size));
@@ -104,10 +105,10 @@ begin
         END;
     FINALLY
       TA.Free;
-      END;
+    END;
   FINALLY
     LvwFiles.Items.EndUpdate;
-    END;
+  END;
   StatusBar.Panels[0].Text := IntToStr (LvwFiles.Items.Count) + ' Files';
   StatusBar.Panels[1].Text := IntToStr (Bytes) + ' Bytes';
 end;
@@ -164,16 +165,16 @@ begin
     IF string (DirRec.Name) <> Item.Caption THEN BEGIN
       ShowMessage ('Filename mismatch. I''ll better not save this file.');
       EXIT;
-      END;
+    END;
     Screen.Cursor := crHourGlass;
     TRY
       TA.ReadFile (DlgSave.Filename);
     FINALLY
       Screen.Cursor := crDefault;
-      END;
+    END;
   FINALLY
     TA.Free;
-    END;
+  END;
 end;
 
 end.
