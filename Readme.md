@@ -16,7 +16,7 @@ Purpose
 
 LibTar is a Library which contains the ObjectPascal class **TTarArchive.** Using this class, you can read the contents (Directory entries and file contents) of a tar file.
 
-===geoffsmith82
+#### geoffsmith82
 I hope to use the original code of the project and add Unit Tests and improve cross-platform compatibility.  It shouldn't be to hard to make it cross platform compatible.
 
 About _tar_
