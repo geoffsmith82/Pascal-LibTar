@@ -87,9 +87,11 @@ uses
   {$DEFINE MSWINDOWS} // predefined for D6+/BCB6+    // because in Delphi 5  MSWINDOWS is not defined
 {$ENDIF}
 {$IFDEF MSWINDOWS}
-   Windows,
+  Windows,
 {$ENDIF}
-  SysUtils, Classes;
+  AnsiStrings,
+  System.SysUtils,
+  System.Classes;
 
 type
   (*$IFNDEF UNICODE *)
@@ -148,14 +150,14 @@ type
     FBytesToGo  : Int64;     // Bytes until the next Header Record
   public
     constructor Create (Stream   : TStream); overload;
-    constructor Create (Filename : string;
+    constructor Create (const Filename : string;
                       FileMode : WORD = fmOpenRead OR fmShareDenyWrite); overload;
     destructor Destroy; override;
     procedure Reset;                                         // Reset File Pointer
     function  FindNext (var DirRec : TTarDirRec) : Boolean;  // Reads next Directory Info Record. FALSE if EOF reached
     procedure ReadFile (Buffer   : POINTER); overload;       // Reads file data for last Directory Record
     procedure ReadFile (Stream   : TStream); overload;       // -;-
-    procedure ReadFile (Filename : string);  overload;       // -;-
+    procedure ReadFile (const Filename : string);  overload;       // -;-
     function  ReadFile : RawByteString;      overload;       // -;-
 
     procedure GetFilePos (var Current, Size : Int64);        // Current File Position
@@ -179,15 +181,15 @@ type
     constructor CreateEmpty;
   public
     constructor Create (TargetStream   : TStream); overload;
-    constructor Create (TargetFilename : string; Mode : integer = fmCreate); overload;
+    constructor Create (const TargetFilename : string; Mode : integer = fmCreate); overload;
     destructor Destroy; override;                   // Writes End-Of-File Tag
-    procedure AddFile   (Filename : string;        TarFilename : AnsiString = '');
-    procedure AddStream (Stream   : TStream;       TarFilename : AnsiString; FileDateGmt : TDateTime);
-    procedure AddString (Contents : RawByteString; TarFilename : AnsiString; FileDateGmt : TDateTime);
-    procedure AddDir          (Dirname            : AnsiString; DateGmt : TDateTime; MaxDirSize : Int64 = 0);
-    procedure AddSymbolicLink (Filename, Linkname : AnsiString; DateGmt : TDateTime);
-    procedure AddLink         (Filename, Linkname : AnsiString; DateGmt : TDateTime);
-    procedure AddVolumeHeader (VolumeId           : AnsiString; DateGmt : TDateTime);
+    procedure AddFile   (const Filename : string;        TarFilename : AnsiString = '');
+    procedure AddStream (Stream   : TStream; const TarFilename : AnsiString; FileDateGmt : TDateTime);
+    procedure AddString (Contents : RawByteString; const TarFilename : AnsiString; FileDateGmt : TDateTime);
+    procedure AddDir(const Dirname : AnsiString; DateGmt : TDateTime; MaxDirSize : Int64 = 0);
+    procedure AddSymbolicLink (const Filename, Linkname : AnsiString; DateGmt : TDateTime);
+    procedure AddLink         (const Filename, Linkname : AnsiString; DateGmt : TDateTime);
+    procedure AddVolumeHeader (const VolumeId : AnsiString; DateGmt : TDateTime);
     procedure Finalize;
   published
     property Permissions : TTarPermissions READ FPermissions WRITE FPermissions;   // Access permissions
@@ -214,8 +216,8 @@ const
 
 
 function  PermissionString      (Permissions : TTarPermissions) : string;
-function  ConvertFilename       (Filename    : string)          : string;
-function  FileTimeGMT           (FileName    : string)          : TDateTime;  overload;
+function  ConvertFilename       (const Filename : string) : string;
+function  FileTimeGMT           (const FileName : string) : TDateTime;  overload;
 function  FileTimeGMT           (SearchRec   : TSearchRec)      : TDateTime;  overload;
 procedure ClearDirRec           (var DirRec  : TTarDirRec);
 
@@ -243,7 +245,7 @@ begin
 end;
 
 
-function ConvertFilename  (Filename : string) : string;
+function ConvertFilename  (const Filename : string) : string;
          // Converts the filename to Unix conventions
 begin
   (*$IFDEF LINUX *)
@@ -254,7 +256,7 @@ begin
 end;
 
 
-function FileTimeGMT (FileName: string): TDateTime;
+function FileTimeGMT (const FileName: string): TDateTime;
          // Returns the Date and Time of the last modification of the given File
          // The Result is zero if the file could not be found
          // The Result is given in UTC (GMT) time zone
@@ -393,7 +395,7 @@ var
   S0   : array [0..255] of AnsiChar;
   Strg : AnsiString;
 begin
-  StrLCopy (S0, P, MaxLen);
+  AnsiStrings.StrLCopy (S0, P, MaxLen);
   Strg := AnsiString (Trim (string (S0)));
   P := PAnsiChar (Strg);
   Result := 0;
@@ -410,7 +412,7 @@ var
   S0   : array [0..255] of AnsiChar;
   Strg : AnsiString;
 begin
-  StrLCopy (S0, P, MaxLen);
+  AnsiStrings.StrLCopy (S0, P, MaxLen);
   Strg := AnsiString (Trim (string (S0)));
   P := PAnsiChar (Strg);
   Result := 0;
@@ -485,7 +487,7 @@ var
   I        : Integer;
 begin
   FillChar (Rec, RECORDSIZE, 0);
-  StrLCopy (TH.Name, PAnsiChar (DirRec.Name), NAMSIZ);
+  AnsiStrings.StrLCopy (TH.Name, PAnsiChar (DirRec.Name), NAMSIZ);
   case DirRec.FileType of
     ftNormal, ftLink  : Mode := $08000;
     ftSymbolicLink    : Mode := $0A000;
@@ -528,13 +530,13 @@ begin
     ftMultiVolume  : TH.LinkFlag := 'M';
     ftVolumeHeader : TH.LinkFlag := 'V';
   end;
-  StrLCopy (TH.LinkName, PAnsiChar (DirRec.LinkName), NAMSIZ);
-  StrLCopy (TH.Magic, PAnsiChar (DirRec.Magic + #32#32#32#32#32#32#32#32), 8);
-  StrLCopy (TH.UName, PAnsiChar (DirRec.UserName), TUNMLEN);
-  StrLCopy (TH.GName, PAnsiChar (DirRec.GroupName), TGNMLEN);
+  AnsiStrings.StrLCopy (TH.LinkName, PAnsiChar (DirRec.LinkName), NAMSIZ);
+  AnsiStrings.StrLCopy (TH.Magic, PAnsiChar (DirRec.Magic + #32#32#32#32#32#32#32#32), 8);
+  AnsiStrings.StrLCopy (TH.UName, PAnsiChar (DirRec.UserName), TUNMLEN);
+  AnsiStrings.StrLCopy (TH.GName, PAnsiChar (DirRec.GroupName), TGNMLEN);
   OctalN (DirRec.MajorDevNo, @TH.DevMajor, 8);
   OctalN (DirRec.MinorDevNo, @TH.DevMinor, 8);
-  StrMove (TH.ChkSum, CHKBLANKS, 8);
+  AnsiStrings.StrMove (TH.ChkSum, CHKBLANKS, 8);
 
   CheckSum := 0;
   for I := 0 to SizeOf (TTarHeader)-1 do
@@ -560,7 +562,7 @@ begin
 end;
 
 
-constructor TTarArchive.Create (Filename : string; FileMode : WORD);
+constructor TTarArchive.Create (const Filename : string; FileMode : WORD);
 begin
   inherited Create;
   FStream     := TFileStream.Create (Filename, FileMode);
@@ -654,7 +656,7 @@ begin
 
   HeaderChkSum := ExtractNumber (@Header.ChkSum);   // Calc Checksum
   CheckSum := 0;
-  StrMove (Header.ChkSum, CHKBLANKS, 8);
+  AnsiStrings.StrMove (Header.ChkSum, CHKBLANKS, 8);
   for I := 0 to SizeOf (TTarHeader)-1 do
     Inc (CheckSum, Integer (ORD (Rec [I])));
   DirRec.CheckSumOK := WORD (CheckSum) = WORD (HeaderChkSum);
@@ -694,7 +696,7 @@ begin
 end;
 
 
-procedure TTarArchive.ReadFile (Filename : string);
+procedure TTarArchive.ReadFile (const Filename : string);
           // Reads file data for the last Directory Record.
           // The entire file is saved in the given Filename
 var
@@ -771,7 +773,7 @@ begin
 end;
 
 
-constructor TTarWriter.Create (TargetFilename : string; Mode : Integer = fmCreate);
+constructor TTarWriter.Create (const TargetFilename : string; Mode : Integer = fmCreate);
 begin
   CreateEmpty;
   FStream     := TFileStream.Create (TargetFilename, Mode);
@@ -792,7 +794,7 @@ begin
 end;
 
 
-procedure TTarWriter.AddFile   (Filename : string;  TarFilename : AnsiString = '');
+procedure TTarWriter.AddFile(const Filename : string;  TarFilename : AnsiString = '');
 var
   S    : TFileStream;
   Date : TDateTime;
@@ -811,7 +813,7 @@ begin
 end;
 
 
-procedure TTarWriter.AddStream (Stream : TStream; TarFilename : AnsiString; FileDateGmt : TDateTime);
+procedure TTarWriter.AddStream (Stream : TStream; const TarFilename : AnsiString; FileDateGmt : TDateTime);
 var
   DirRec      : TTarDirRec;
   Rec         : array [0..RECORDSIZE-1] of CHAR;
@@ -849,7 +851,7 @@ begin
 end;
 
 
-procedure TTarWriter.AddString (Contents : RawByteString; TarFilename : AnsiString; FileDateGmt : TDateTime);
+procedure TTarWriter.AddString (Contents : RawByteString; const TarFilename : AnsiString; FileDateGmt : TDateTime);
 var
   S : TStringStream;
 begin
@@ -862,7 +864,7 @@ begin
 end;
 
 
-procedure TTarWriter.AddDir (Dirname : AnsiString; DateGmt : TDateTime; MaxDirSize : Int64 = 0);
+procedure TTarWriter.AddDir (const Dirname : AnsiString; DateGmt : TDateTime; MaxDirSize : Int64 = 0);
 var
   DirRec      : TTarDirRec;
 begin
@@ -887,7 +889,7 @@ begin
 end;
 
 
-procedure TTarWriter.AddSymbolicLink (Filename, Linkname : AnsiString; DateGmt : TDateTime);
+procedure TTarWriter.AddSymbolicLink (const Filename, Linkname : AnsiString; DateGmt : TDateTime);
 var
   DirRec : TTarDirRec;
 begin
@@ -912,7 +914,7 @@ begin
 end;
 
 
-procedure TTarWriter.AddLink (Filename, Linkname : AnsiString; DateGmt : TDateTime);
+procedure TTarWriter.AddLink (const Filename, Linkname : AnsiString; DateGmt : TDateTime);
 var
   DirRec : TTarDirRec;
 begin
@@ -937,7 +939,7 @@ begin
 end;
 
 
-procedure TTarWriter.AddVolumeHeader (VolumeId : AnsiString; DateGmt : TDateTime);
+procedure TTarWriter.AddVolumeHeader (const VolumeId : AnsiString; DateGmt : TDateTime);
 var
   DirRec : TTarDirRec;
 begin
