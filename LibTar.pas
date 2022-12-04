@@ -18,11 +18,11 @@ TTarArchive Usage
 - Choose a constructor
 - Make an instance of TTarArchive                  TA := TTarArchive.Create (Filename);
 - Scan through the archive                         TA.Reset;
-                                                   WHILE TA.FindNext (DirRec) DO BEGIN
+                                                   while TA.FindNext (DirRec) do begin
 - Evaluate the DirRec for each file                  ListBox.Items.Add (DirRec.Name);
 - Read out the current file                          TA.ReadFile (DestFilename);
   (You can ommit this if you want to
-  read in the directory only)                        END;      
+  read in the directory only)                        end;
 - You're done                                      TA.Free;
 
 
@@ -46,12 +46,6 @@ can be downloaded at http://www.destructor.de/
 
 IN SHORT: Usage and distribution of this source code is free.
           You use it completely on your own risk.
-
-Donateware
-----------
-If you like this code, you are free to donate
-http://www.destructor.de/donateware.htm
-
 ===============================================================================================
 !!!  All parts of this code which are not finished or known to be buggy
      are marked with three exclamation marks
@@ -66,7 +60,7 @@ Date        Author Changes
 2001-11-13  HeySt  2.0.3 Bugfix: Take out ClearDirRec call from WriteTarHeader
                          Bug Reported by Tony BenBrahim
 2001-12-25  HeySt  2.0.4 WriteTarHeader: Fill Rec with zero bytes before filling it
-2002-05-18  HeySt  2.0.5 Kylix awareness: Thanks to Kerry L. Davison for the canges
+2002-05-18  HeySt  2.0.5 Kylix awareness: Thanks to Kerry L. Davison for the changes
 2005-09-03  HeySt  2.0.6 TTarArchive.FindNext: Don't access SourceStream.Size
                          (for compressed streams, which don't know their .Size)
 2006-03-13  HeySt  2.0.7 Bugfix in ReadFile (Buffer : POINTER)
@@ -77,13 +71,15 @@ Date        Author Changes
                          Still no support for filenames > 100 bytes. Sorry.
                          Support for Unicode Delphi versions (2009, 2010, XE, etc.)
 2011-05-23  HeySt  2.1.1 New IFDEF WIN32 in the USES clause
+2014-06-23  HeySt  2.1.2 64-Bit Seek operations, CurFilePos as Int64
+                         Thanks to Andódy Csaba for the fixes.
 *)
 
-UNIT LibTar;
+unit LibTar;
 
-INTERFACE
+interface
 
-USES
+uses
 (*$IFDEF LINUX*)
    Libc,
 (*$ENDIF *)
@@ -95,7 +91,7 @@ USES
 {$ENDIF}
   SysUtils, Classes;
 
-TYPE
+type
   (*$IFNDEF UNICODE *)
   RawByteString = AnsiString;
   (*$ENDIF *)
@@ -104,7 +100,7 @@ TYPE
   TTarPermission  = (tpReadByOwner, tpWriteByOwner, tpExecuteByOwner,
                      tpReadByGroup, tpWriteByGroup, tpExecuteByGroup,
                      tpReadByOther, tpWriteByOther, tpExecuteByOther);
-  TTarPermissions = SET OF TTarPermission;
+  TTarPermissions = set of TTarPermission;
 
   // --- Type of File
   TFileType = (ftNormal,          // Regular file
@@ -121,11 +117,11 @@ TYPE
 
   // --- Mode
   TTarMode  = (tmSetUid, tmSetGid, tmSaveText);
-  TTarModes = SET OF TTarMode;
+  TTarModes = set of TTarMode;
 
   // --- Record for a Directory Entry
   //     Adjust the ClearDirRec procedure when this record changes!
-  TTarDirRec  = RECORD
+  TTarDirRec  = record
     Name        : AnsiString;        // File path and name
     Size        : INT64;             // File size in Bytes
     DateTime    : TDateTime;         // Last modification date and time
@@ -142,69 +138,69 @@ TYPE
     MajorDevNo  : INTEGER;           // Major Device No. for ftCharacter and ftBlock
     MinorDevNo  : INTEGER;           // Minor Device No. for ftCharacter and ftBlock
     FilePos     : INT64;             // Position in TAR file
-  END;
+  end;
 
   // --- The TAR Archive CLASS
-  TTarArchive = CLASS
-  PROTECTED
+  TTarArchive = class
+  protected
     FStream     : TStream;   // Internal Stream
     FOwnsStream : BOOLEAN;   // True if FStream is owned by the TTarArchive instance
     FBytesToGo  : INT64;     // Bytes until the next Header Record
-  PUBLIC
-    CONSTRUCTOR Create (Stream   : TStream);                                OVERLOAD;
-    CONSTRUCTOR Create (Filename : STRING;
-                        FileMode : WORD = fmOpenRead OR fmShareDenyWrite);  OVERLOAD;
-    DESTRUCTOR Destroy;                                       OVERRIDE;
-    PROCEDURE Reset;                                         // Reset File Pointer
-    FUNCTION  FindNext (VAR DirRec : TTarDirRec) : BOOLEAN;  // Reads next Directory Info Record. FALSE if EOF reached
-    PROCEDURE ReadFile (Buffer   : POINTER); OVERLOAD;       // Reads file data for last Directory Record
-    PROCEDURE ReadFile (Stream   : TStream); OVERLOAD;       // -;-
-    PROCEDURE ReadFile (Filename : STRING);  OVERLOAD;       // -;-
-    FUNCTION  ReadFile : RawByteString;      OVERLOAD;       // -;-
+  public
+	CONSTRUCTOR Create (Stream   : TStream);                                OVERLOAD;
+	CONSTRUCTOR Create (Filename : STRING;
+	                  FileMode : WORD = fmOpenRead OR fmShareDenyWrite);  OVERLOAD;
+	DESTRUCTOR Destroy;                                       OVERRIDE;
+	PROCEDURE Reset;                                         // Reset File Pointer
+	FUNCTION  FindNext (VAR DirRec : TTarDirRec) : BOOLEAN;  // Reads next Directory Info Record. FALSE if EOF reached
+	PROCEDURE ReadFile (Buffer   : POINTER); OVERLOAD;       // Reads file data for last Directory Record
+	PROCEDURE ReadFile (Stream   : TStream); OVERLOAD;       // -;-
+	PROCEDURE ReadFile (Filename : STRING);  OVERLOAD;       // -;-
+	FUNCTION  ReadFile : RawByteString;      OVERLOAD;       // -;-
 
-    PROCEDURE GetFilePos (VAR Current, Size : INT64);        // Current File Position
-    PROCEDURE SetFilePos (NewPos : INT64);                   // Set new Current File Position
-  END;
+	PROCEDURE GetFilePos (VAR Current, Size : INT64);        // Current File Position
+	PROCEDURE SetFilePos (NewPos : INT64);                   // Set new Current File Position
+  end;
 
   // --- The TAR Archive Writer CLASS
-  TTarWriter = CLASS
-  PROTECTED
-    FStream      : TStream;
-    FOwnsStream  : BOOLEAN;
-    FFinalized   : BOOLEAN;
-                                     // --- Used at the next "Add" method call: ---
-    FPermissions : TTarPermissions;   // Access permissions
-    FUID         : INTEGER;           // User ID
-    FGID         : INTEGER;           // Group ID
-    FUserName    : AnsiString;        // User name
-    FGroupName   : AnsiString;        // Group name
-    FMode        : TTarModes;         // Mode
-    FMagic       : AnsiString;        // Contents of the "Magic" field
-    CONSTRUCTOR CreateEmpty;
-  PUBLIC
-    CONSTRUCTOR Create (TargetStream   : TStream);                            OVERLOAD;
-    CONSTRUCTOR Create (TargetFilename : STRING; Mode : INTEGER = fmCreate);  OVERLOAD;
-    DESTRUCTOR Destroy; OVERRIDE;                   // Writes End-Of-File Tag
-    PROCEDURE AddFile   (Filename : STRING;        TarFilename : AnsiString = '');
-    PROCEDURE AddStream (Stream   : TStream;       TarFilename : AnsiString; FileDateGmt : TDateTime);
-    PROCEDURE AddString (Contents : RawByteString; TarFilename : AnsiString; FileDateGmt : TDateTime);
-    PROCEDURE AddDir          (Dirname            : AnsiString; DateGmt : TDateTime; MaxDirSize : INT64 = 0);
-    PROCEDURE AddSymbolicLink (Filename, Linkname : AnsiString; DateGmt : TDateTime);
-    PROCEDURE AddLink         (Filename, Linkname : AnsiString; DateGmt : TDateTime);
-    PROCEDURE AddVolumeHeader (VolumeId           : AnsiString; DateGmt : TDateTime);
-    PROCEDURE Finalize;
-    PROPERTY Permissions : TTarPermissions READ FPermissions WRITE FPermissions;   // Access permissions
-    PROPERTY UID         : INTEGER         READ FUID         WRITE FUID;           // User ID
-    PROPERTY GID         : INTEGER         READ FGID         WRITE FGID;           // Group ID
-    PROPERTY UserName    : AnsiString      READ FUserName    WRITE FUserName;      // User name
-    PROPERTY GroupName   : AnsiString      READ FGroupName   WRITE FGroupName;     // Group name
-    PROPERTY Mode        : TTarModes       READ FMode        WRITE FMode;          // Mode
-    PROPERTY Magic       : AnsiString      READ FMagic       WRITE FMagic;         // Contents of the "Magic" field
-  END;
+  TTarWriter = class
+  protected
+	FStream      : TStream;
+	FOwnsStream  : BOOLEAN;
+	FFinalized   : BOOLEAN;
+	                               // --- Used at the next "Add" method call: ---
+	FPermissions : TTarPermissions;   // Access permissions
+	FUID         : INTEGER;           // User ID
+	FGID         : INTEGER;           // Group ID
+	FUserName    : AnsiString;        // User name
+	FGroupName   : AnsiString;        // Group name
+	FMode        : TTarModes;         // Mode
+	FMagic       : AnsiString;        // Contents of the "Magic" field
+	constructor CreateEmpty;
+  public
+	constructor Create (TargetStream   : TStream); overload;
+	constructor Create (TargetFilename : string; Mode : integer = fmCreate); overload;
+	destructor Destroy; override;                   // Writes End-Of-File Tag
+	PROCEDURE AddFile   (Filename : STRING;        TarFilename : AnsiString = '');
+	PROCEDURE AddStream (Stream   : TStream;       TarFilename : AnsiString; FileDateGmt : TDateTime);
+	PROCEDURE AddString (Contents : RawByteString; TarFilename : AnsiString; FileDateGmt : TDateTime);
+	PROCEDURE AddDir          (Dirname            : AnsiString; DateGmt : TDateTime; MaxDirSize : INT64 = 0);
+	PROCEDURE AddSymbolicLink (Filename, Linkname : AnsiString; DateGmt : TDateTime);
+	PROCEDURE AddLink         (Filename, Linkname : AnsiString; DateGmt : TDateTime);
+	PROCEDURE AddVolumeHeader (VolumeId           : AnsiString; DateGmt : TDateTime);
+	PROCEDURE Finalize;
+	PROPERTY Permissions : TTarPermissions READ FPermissions WRITE FPermissions;   // Access permissions
+	PROPERTY UID         : INTEGER         READ FUID         WRITE FUID;           // User ID
+	PROPERTY GID         : INTEGER         READ FGID         WRITE FGID;           // Group ID
+	PROPERTY UserName    : AnsiString      READ FUserName    WRITE FUserName;      // User name
+	PROPERTY GroupName   : AnsiString      READ FGroupName   WRITE FGroupName;     // Group name
+	PROPERTY Mode        : TTarModes       READ FMode        WRITE FMode;          // Mode
+	PROPERTY Magic       : AnsiString      READ FMagic       WRITE FMagic;         // Contents of the "Magic" field
+  end;
 
 // --- Some useful constants
-CONST
-  FILETYPE_NAME : ARRAY [TFileType] OF STRING =
+const
+  FILETYPE_NAME : array [TFileType] of string =
                   ('Regular', 'Link', 'Symbolic Link', 'Char File', 'Block File',
                    'Directory', 'FIFO File', 'Contiguous', 'Dir Dump', 'Multivol', 'Volume Header');
 
@@ -216,11 +212,11 @@ CONST
   EXECUTE_PERMISSIONS = [tpExecuteByOwner, tpExecuteByGroup, tpExecuteByOther];
 
 
-FUNCTION  PermissionString      (Permissions : TTarPermissions) : STRING;
-FUNCTION  ConvertFilename       (Filename    : STRING)          : STRING;
-FUNCTION  FileTimeGMT           (FileName    : STRING)          : TDateTime;  OVERLOAD;
-FUNCTION  FileTimeGMT           (SearchRec   : TSearchRec)      : TDateTime;  OVERLOAD;
-PROCEDURE ClearDirRec           (VAR DirRec  : TTarDirRec);
+function  PermissionString      (Permissions : TTarPermissions) : string;
+function  ConvertFilename       (Filename    : string)          : string;
+function  FileTimeGMT           (FileName    : string)          : TDateTime;  overload;
+function  FileTimeGMT           (SearchRec   : TSearchRec)      : TDateTime;  overload;
+procedure ClearDirRec           (var DirRec  : TTarDirRec);
 
 
 (*
@@ -548,7 +544,6 @@ BEGIN
 END;
 
 
-
 (*
 ===============================================================================================
 TTarArchive
@@ -594,7 +589,7 @@ FUNCTION  TTarArchive.FindNext (VAR DirRec : TTarDirRec) : BOOLEAN;
           // The Stream pointer must point to the first byte of the tar header
 VAR
   Rec          : ARRAY [0..RECORDSIZE-1] OF CHAR;
-  CurFilePos   : INTEGER;
+  CurFilePos   : int64;
   Header       : TTarHeader ABSOLUTE Rec;
   I            : INTEGER;
   HeaderChkSum : WORD;
@@ -602,7 +597,7 @@ VAR
 BEGIN
   // --- Scan until next pointer
   IF FBytesToGo > 0 THEN
-    FStream.Seek (Records (FBytesToGo) * RECORDSIZE, soFromCurrent);
+    FStream.Seek (Records (FBytesToGo) * RECORDSIZE, soCurrent);
 
   // --- EOF reached?
   Result := FALSE;
@@ -678,7 +673,7 @@ BEGIN
   IF FBytesToGo = 0 THEN EXIT;
   RestBytes := Records (FBytesToGo) * RECORDSIZE - FBytesToGo;
   FStream.ReadBuffer (Buffer^, FBytesToGo);
-  FStream.Seek (RestBytes, soFromCurrent);
+  FStream.Seek (RestBytes, soCurrent);
   FBytesToGo := 0;
 END;
 
@@ -693,7 +688,7 @@ BEGIN
   IF FBytesToGo = 0 THEN EXIT;
   RestBytes := Records (FBytesToGo) * RECORDSIZE - FBytesToGo;
   Stream.CopyFrom (FStream, FBytesToGo);
-  FStream.Seek (RestBytes, soFromCurrent);
+  FStream.Seek (RestBytes, soCurrent);
   FBytesToGo := 0;
 END;
 
@@ -723,7 +718,7 @@ BEGIN
   RestBytes := Records (FBytesToGo) * RECORDSIZE - FBytesToGo;
   SetLength (Result, FBytesToGo);
   FStream.ReadBuffer (PAnsiChar (Result)^, FBytesToGo);
-  FStream.Seek (RestBytes, soFromCurrent);
+  FStream.Seek (RestBytes, soCurrent);
   FBytesToGo := 0;
 END;
 
@@ -739,7 +734,7 @@ END;
 PROCEDURE TTarArchive.SetFilePos (NewPos : INT64);                   // Set new Current File Position
 BEGIN
   IF NewPos < FStream.Size THEN
-    FStream.Seek (NewPos, soFromBeginning);
+    FStream.Seek (NewPos, soBeginning);
 END;
 
 
@@ -748,7 +743,6 @@ END;
 TTarWriter
 ===============================================================================================
 *)
-
 
 CONSTRUCTOR TTarWriter.CreateEmpty;
 VAR
@@ -979,5 +973,5 @@ BEGIN
 END;
 
 
-END.
+end.
 
