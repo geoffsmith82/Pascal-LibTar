@@ -153,7 +153,15 @@ type
     constructor Create (const Filename : string;
                       FileMode : WORD = fmOpenRead OR fmShareDenyWrite); overload;
     destructor Destroy; override;
+    /// <summary>
+    /// Reset TAR File Pointer
+    /// </summary>
     procedure Reset;                                         // Reset File Pointer
+    /// <summary>
+    /// Reads next Directory Info Record
+    /// The Stream pointer must point to the first byte of the tar header
+    /// <returns>FALSE if EOF reached</returns>
+    /// </summary>
     function  FindNext (var DirRec : TTarDirRec) : Boolean;  // Reads next Directory Info Record. FALSE if EOF reached
     procedure ReadFile (Buffer   : POINTER); overload;       // Reads file data for last Directory Record
     procedure ReadFile (Stream   : TStream); overload;       // -;-
@@ -179,6 +187,7 @@ type
     FMode        : TTarModes;         // Mode
     FMagic       : AnsiString;        // Contents of the "Magic" field
     constructor CreateEmpty;
+    procedure Finalize;
   public
     constructor Create (TargetStream   : TStream); overload;
     constructor Create (const TargetFilename : string; Mode : integer = fmCreate); overload;
@@ -190,7 +199,6 @@ type
     procedure AddSymbolicLink (const Filename, Linkname : AnsiString; DateGmt : TDateTime);
     procedure AddLink         (const Filename, Linkname : AnsiString; DateGmt : TDateTime);
     procedure AddVolumeHeader (const VolumeId : AnsiString; DateGmt : TDateTime);
-    procedure Finalize;
   published
     property Permissions : TTarPermissions READ FPermissions WRITE FPermissions;   // Access permissions
     property UID         : Integer         READ FUID         WRITE FUID;           // User ID
@@ -217,8 +225,13 @@ const
 
 function  PermissionString      (Permissions : TTarPermissions) : string;
 function  ConvertFilename       (const Filename : string) : string;
+/// <summary>Returns the Date and Time of the last modification of the given File
+/// The Result is zero if the file could not be found
+/// The Result is given in UTC (GMT) time zone</summary>
 function  FileTimeGMT           (const FileName : string) : TDateTime;  overload;
 function  FileTimeGMT           (SearchRec   : TSearchRec)      : TDateTime;  overload;
+/// <summary>This is included because a FillChar (DirRec, SizeOf (DirRec), 0)
+/// will destroy the long string pointers, leading to strange bugs</summary>
 procedure ClearDirRec           (var DirRec  : TTarDirRec);
 
 
