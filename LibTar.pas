@@ -90,9 +90,9 @@ USES
 {$IFDEF WIN32}
   {$DEFINE MSWINDOWS} // predefined for D6+/BCB6+    // because in Delphi 5  MSWINDOWS is not defined
 {$ENDIF}
-(*$IFDEF MSWINDOWS *)
+{$IFDEF MSWINDOWS}
    Windows,
-(*$ENDIF *)
+{$ENDIF}
   SysUtils, Classes;
 
 TYPE
@@ -126,81 +126,81 @@ TYPE
   // --- Record for a Directory Entry
   //     Adjust the ClearDirRec procedure when this record changes!
   TTarDirRec  = RECORD
-                  Name        : AnsiString;        // File path and name
-                  Size        : INT64;             // File size in Bytes
-                  DateTime    : TDateTime;         // Last modification date and time
-                  Permissions : TTarPermissions;   // Access permissions
-                  FileType    : TFileType;         // Type of file
-                  LinkName    : AnsiString;        // Name of linked file (for ftLink, ftSymbolicLink)
-                  UID         : INTEGER;           // User ID
-                  GID         : INTEGER;           // Group ID
-                  UserName    : AnsiString;        // User name
-                  GroupName   : AnsiString;        // Group name
-                  ChecksumOK  : BOOLEAN;           // Checksum was OK
-                  Mode        : TTarModes;         // Mode
-                  Magic       : AnsiString;        // Contents of the "Magic" field
-                  MajorDevNo  : INTEGER;           // Major Device No. for ftCharacter and ftBlock
-                  MinorDevNo  : INTEGER;           // Minor Device No. for ftCharacter and ftBlock
-                  FilePos     : INT64;             // Position in TAR file
-                END;
+    Name        : AnsiString;        // File path and name
+    Size        : INT64;             // File size in Bytes
+    DateTime    : TDateTime;         // Last modification date and time
+    Permissions : TTarPermissions;   // Access permissions
+    FileType    : TFileType;         // Type of file
+    LinkName    : AnsiString;        // Name of linked file (for ftLink, ftSymbolicLink)
+    UID         : INTEGER;           // User ID
+    GID         : INTEGER;           // Group ID
+    UserName    : AnsiString;        // User name
+    GroupName   : AnsiString;        // Group name
+    ChecksumOK  : BOOLEAN;           // Checksum was OK
+    Mode        : TTarModes;         // Mode
+    Magic       : AnsiString;        // Contents of the "Magic" field
+    MajorDevNo  : INTEGER;           // Major Device No. for ftCharacter and ftBlock
+    MinorDevNo  : INTEGER;           // Minor Device No. for ftCharacter and ftBlock
+    FilePos     : INT64;             // Position in TAR file
+  END;
 
   // --- The TAR Archive CLASS
   TTarArchive = CLASS
-                PROTECTED
-                  FStream     : TStream;   // Internal Stream
-                  FOwnsStream : BOOLEAN;   // True if FStream is owned by the TTarArchive instance
-                  FBytesToGo  : INT64;     // Bytes until the next Header Record
-                PUBLIC
-                  CONSTRUCTOR Create (Stream   : TStream);                                OVERLOAD;
-                  CONSTRUCTOR Create (Filename : STRING;
-                                      FileMode : WORD = fmOpenRead OR fmShareDenyWrite);  OVERLOAD;
-                  DESTRUCTOR Destroy;                                       OVERRIDE;
-                  PROCEDURE Reset;                                         // Reset File Pointer
-                  FUNCTION  FindNext (VAR DirRec : TTarDirRec) : BOOLEAN;  // Reads next Directory Info Record. FALSE if EOF reached
-                  PROCEDURE ReadFile (Buffer   : POINTER); OVERLOAD;       // Reads file data for last Directory Record
-                  PROCEDURE ReadFile (Stream   : TStream); OVERLOAD;       // -;-
-                  PROCEDURE ReadFile (Filename : STRING);  OVERLOAD;       // -;-
-                  FUNCTION  ReadFile : RawByteString;      OVERLOAD;       // -;-
+  PROTECTED
+    FStream     : TStream;   // Internal Stream
+    FOwnsStream : BOOLEAN;   // True if FStream is owned by the TTarArchive instance
+    FBytesToGo  : INT64;     // Bytes until the next Header Record
+  PUBLIC
+    CONSTRUCTOR Create (Stream   : TStream);                                OVERLOAD;
+    CONSTRUCTOR Create (Filename : STRING;
+                        FileMode : WORD = fmOpenRead OR fmShareDenyWrite);  OVERLOAD;
+    DESTRUCTOR Destroy;                                       OVERRIDE;
+    PROCEDURE Reset;                                         // Reset File Pointer
+    FUNCTION  FindNext (VAR DirRec : TTarDirRec) : BOOLEAN;  // Reads next Directory Info Record. FALSE if EOF reached
+    PROCEDURE ReadFile (Buffer   : POINTER); OVERLOAD;       // Reads file data for last Directory Record
+    PROCEDURE ReadFile (Stream   : TStream); OVERLOAD;       // -;-
+    PROCEDURE ReadFile (Filename : STRING);  OVERLOAD;       // -;-
+    FUNCTION  ReadFile : RawByteString;      OVERLOAD;       // -;-
 
-                  PROCEDURE GetFilePos (VAR Current, Size : INT64);        // Current File Position
-                  PROCEDURE SetFilePos (NewPos : INT64);                   // Set new Current File Position
-                END;
+    PROCEDURE GetFilePos (VAR Current, Size : INT64);        // Current File Position
+    PROCEDURE SetFilePos (NewPos : INT64);                   // Set new Current File Position
+  END;
 
   // --- The TAR Archive Writer CLASS
   TTarWriter = CLASS
-               PROTECTED
-                 FStream      : TStream;
-                 FOwnsStream  : BOOLEAN;
-                 FFinalized   : BOOLEAN;
-                                                   // --- Used at the next "Add" method call: ---
-                 FPermissions : TTarPermissions;   // Access permissions
-                 FUID         : INTEGER;           // User ID
-                 FGID         : INTEGER;           // Group ID
-                 FUserName    : AnsiString;        // User name
-                 FGroupName   : AnsiString;        // Group name
-                 FMode        : TTarModes;         // Mode
-                 FMagic       : AnsiString;        // Contents of the "Magic" field
-                 CONSTRUCTOR CreateEmpty;
-               PUBLIC
-                 CONSTRUCTOR Create (TargetStream   : TStream);                            OVERLOAD;
-                 CONSTRUCTOR Create (TargetFilename : STRING; Mode : INTEGER = fmCreate);  OVERLOAD;
-                 DESTRUCTOR Destroy; OVERRIDE;                   // Writes End-Of-File Tag
-                 PROCEDURE AddFile   (Filename : STRING;        TarFilename : AnsiString = '');
-                 PROCEDURE AddStream (Stream   : TStream;       TarFilename : AnsiString; FileDateGmt : TDateTime);
-                 PROCEDURE AddString (Contents : RawByteString; TarFilename : AnsiString; FileDateGmt : TDateTime);
-                 PROCEDURE AddDir          (Dirname            : AnsiString; DateGmt : TDateTime; MaxDirSize : INT64 = 0);
-                 PROCEDURE AddSymbolicLink (Filename, Linkname : AnsiString; DateGmt : TDateTime);
-                 PROCEDURE AddLink         (Filename, Linkname : AnsiString; DateGmt : TDateTime);
-                 PROCEDURE AddVolumeHeader (VolumeId           : AnsiString; DateGmt : TDateTime);
-                 PROCEDURE Finalize;
-                 PROPERTY Permissions : TTarPermissions READ FPermissions WRITE FPermissions;   // Access permissions
-                 PROPERTY UID         : INTEGER         READ FUID         WRITE FUID;           // User ID
-                 PROPERTY GID         : INTEGER         READ FGID         WRITE FGID;           // Group ID
-                 PROPERTY UserName    : AnsiString      READ FUserName    WRITE FUserName;      // User name
-                 PROPERTY GroupName   : AnsiString      READ FGroupName   WRITE FGroupName;     // Group name
-                 PROPERTY Mode        : TTarModes       READ FMode        WRITE FMode;          // Mode
-                 PROPERTY Magic       : AnsiString      READ FMagic       WRITE FMagic;         // Contents of the "Magic" field
-               END;
+  PROTECTED
+    FStream      : TStream;
+    FOwnsStream  : BOOLEAN;
+    FFinalized   : BOOLEAN;
+                                     // --- Used at the next "Add" method call: ---
+    FPermissions : TTarPermissions;   // Access permissions
+    FUID         : INTEGER;           // User ID
+    FGID         : INTEGER;           // Group ID
+    FUserName    : AnsiString;        // User name
+    FGroupName   : AnsiString;        // Group name
+    FMode        : TTarModes;         // Mode
+    FMagic       : AnsiString;        // Contents of the "Magic" field
+    CONSTRUCTOR CreateEmpty;
+  PUBLIC
+    CONSTRUCTOR Create (TargetStream   : TStream);                            OVERLOAD;
+    CONSTRUCTOR Create (TargetFilename : STRING; Mode : INTEGER = fmCreate);  OVERLOAD;
+    DESTRUCTOR Destroy; OVERRIDE;                   // Writes End-Of-File Tag
+    PROCEDURE AddFile   (Filename : STRING;        TarFilename : AnsiString = '');
+    PROCEDURE AddStream (Stream   : TStream;       TarFilename : AnsiString; FileDateGmt : TDateTime);
+    PROCEDURE AddString (Contents : RawByteString; TarFilename : AnsiString; FileDateGmt : TDateTime);
+    PROCEDURE AddDir          (Dirname            : AnsiString; DateGmt : TDateTime; MaxDirSize : INT64 = 0);
+    PROCEDURE AddSymbolicLink (Filename, Linkname : AnsiString; DateGmt : TDateTime);
+    PROCEDURE AddLink         (Filename, Linkname : AnsiString; DateGmt : TDateTime);
+    PROCEDURE AddVolumeHeader (VolumeId           : AnsiString; DateGmt : TDateTime);
+    PROCEDURE Finalize;
+    PROPERTY Permissions : TTarPermissions READ FPermissions WRITE FPermissions;   // Access permissions
+    PROPERTY UID         : INTEGER         READ FUID         WRITE FUID;           // User ID
+    PROPERTY GID         : INTEGER         READ FGID         WRITE FGID;           // Group ID
+    PROPERTY UserName    : AnsiString      READ FUserName    WRITE FUserName;      // User name
+    PROPERTY GroupName   : AnsiString      READ FGroupName   WRITE FGroupName;     // Group name
+    PROPERTY Mode        : TTarModes       READ FMode        WRITE FMode;          // Mode
+    PROPERTY Magic       : AnsiString      READ FMagic       WRITE FMagic;         // Contents of the "Magic" field
+  END;
 
 // --- Some useful constants
 CONST
@@ -320,7 +320,7 @@ BEGIN
     MajorDevNo  := 0;
     MinorDevNo  := 0;
     FilePos     := 0;
-    END;
+  END;
 END;
 
 (*
@@ -367,10 +367,11 @@ BEGIN
   Strg := AnsiString (Trim (string (P)));
   P := PAnsiChar (Strg);
   Result := 0;
-  WHILE (P^ <> #32) AND (P^ <> #0) DO BEGIN
+  WHILE (P^ <> #32) AND (P^ <> #0) DO
+  BEGIN
     Result := (ORD (P^) - ORD ('0')) OR (Result SHL 3);
     INC (P);
-    END;
+  END;
 END;
 
 
@@ -381,10 +382,11 @@ BEGIN
   Strg := AnsiString (Trim (string (P)));
   P := PAnsiChar (Strg);
   Result := 0;
-  WHILE (P^ <> #32) AND (P^ <> #0) DO BEGIN
+  WHILE (P^ <> #32) AND (P^ <> #0) DO
+  BEGIN
     Result := (ORD (P^) - ORD ('0')) OR (Result SHL 3);
     INC (P);
-    END;
+  END;
 END;
 
 
@@ -398,10 +400,11 @@ BEGIN
   Strg := AnsiString (Trim (string (S0)));
   P := PAnsiChar (Strg);
   Result := 0;
-  WHILE (P^ <> #32) AND (P^ <> #0) DO BEGIN
+  WHILE (P^ <> #32) AND (P^ <> #0) DO
+  BEGIN
     Result := (ORD (P^) - ORD ('0')) OR (Result SHL 3);
     INC (P);
-    END;
+  END;
 END;
 
 
@@ -414,10 +417,11 @@ BEGIN
   Strg := AnsiString (Trim (string (S0)));
   P := PAnsiChar (Strg);
   Result := 0;
-  WHILE (P^ <> #32) AND (P^ <> #0) DO BEGIN
+  WHILE (P^ <> #32) AND (P^ <> #0) DO
+  BEGIN
     Result := (ORD (P^) - ORD ('0')) OR (Result SHL 3);
     INC (P);
-    END;
+  END;
 END;
 
 
@@ -435,14 +439,15 @@ PROCEDURE Octal (N : INTEGER; P : PAnsiChar; Len : INTEGER);
 VAR
   I : INTEGER;
 BEGIN
-  FOR I := Len-2 DOWNTO 0 DO BEGIN
+  FOR I := Len-2 DOWNTO 0 DO
+  BEGIN
     (P+I)^ := AnsiChar (ORD ('0') + ORD (N AND $07));
     N := N SHR 3;
-    END;
+  END;
   FOR I := 0 TO Len-3 DO
-    IF (P+I)^ = '0'
-      THEN (P+I)^ := #32
-      ELSE BREAK;
+    IF (P+I)^ = '0' THEN
+      (P+I)^ := #32
+    ELSE BREAK;
   (P+Len-1)^ := #32;
 END;
 
@@ -453,14 +458,15 @@ PROCEDURE Octal64 (N : INT64; P : PAnsiChar; Len : INTEGER);
 VAR
   I     : INTEGER;
 BEGIN
-  FOR I := Len-2 DOWNTO 0 DO BEGIN
+  FOR I := Len-2 DOWNTO 0 DO
+  BEGIN
     (P+I)^ := AnsiChar (ORD ('0') + ORD (N AND $07));
     N := N SHR 3;
-    END;
+  END;
   FOR I := 0 TO Len-3 DO
-    IF (P+I)^ = '0'
-      THEN (P+I)^ := #32
-      ELSE BREAK;
+    IF (P+I)^ = '0' THEN
+      (P+I)^ := #32
+    ELSE BREAK;
   (P+Len-1)^ := #32;
 END;
 
@@ -487,8 +493,9 @@ BEGIN
     ftNormal, ftLink  : Mode := $08000;
     ftSymbolicLink    : Mode := $0A000;
     ftDirectory       : Mode := $04000;
-    ELSE                Mode := 0;
-    END;
+  ELSE                  Mode := 0;
+  END;
+
   IF tmSaveText IN DirRec.Mode THEN Mode := Mode OR $0200;
   IF tmSetGid   IN DirRec.Mode THEN Mode := Mode OR $0400;
   IF tmSetUid   IN DirRec.Mode THEN Mode := Mode OR $0800;
@@ -506,9 +513,11 @@ BEGIN
   OctalN (DirRec.GID, @TH.GID, 8);
   Octal64 (DirRec.Size, @TH.Size, 12);
   NullDate := EncodeDate (1970, 1, 1);
-  IF DirRec.DateTime >= NullDate
-    THEN Octal (Trunc ((DirRec.DateTime - NullDate) * 86400.0), @TH.MTime, 12)
-    ELSE Octal (Trunc (                   NullDate  * 86400.0), @TH.MTime, 12);
+  IF DirRec.DateTime >= NullDate THEN
+    Octal (Trunc ((DirRec.DateTime - NullDate) * 86400.0), @TH.MTime, 12)
+  ELSE
+    Octal (Trunc (                   NullDate  * 86400.0), @TH.MTime, 12);
+
   CASE DirRec.FileType OF
     ftNormal       : TH.LinkFlag := '0';
     ftLink         : TH.LinkFlag := '1';
@@ -521,7 +530,7 @@ BEGIN
     ftDumpDir      : TH.LinkFlag := 'D';
     ftMultiVolume  : TH.LinkFlag := 'M';
     ftVolumeHeader : TH.LinkFlag := 'V';
-    END;
+  END;
   StrLCopy (TH.LinkName, PAnsiChar (DirRec.LinkName), NAMSIZ);
   StrLCopy (TH.Magic, PAnsiChar (DirRec.Magic + #32#32#32#32#32#32#32#32), 8);
   StrLCopy (TH.UName, PAnsiChar (DirRec.UserName), TUNMLEN);
@@ -603,7 +612,7 @@ BEGIN
     if Rec [0] = #0 THEN EXIT;   // EOF reached
   EXCEPT
     EXIT;   // EOF reached, too
-    END;
+  END;
   Result := TRUE;
 
   ClearDirRec (DirRec);
@@ -637,7 +646,7 @@ BEGIN
     'D'     : DirRec.FileType := ftDumpDir;
     'M'     : DirRec.FileType := ftMultiVolume;
     'V'     : DirRec.FileType := ftVolumeHeader;
-    END;
+  END;
   DirRec.LinkName   := ExtractText (Header.LinkName);
   DirRec.UID        := ExtractNumber (@Header.UID);
   DirRec.GID        := ExtractNumber (@Header.GID);
@@ -700,7 +709,7 @@ BEGIN
     ReadFile (FS);
   FINALLY
     FS.Free;
-    END;
+  END;
 END;
 
 
@@ -777,10 +786,11 @@ END;
 
 DESTRUCTOR TTarWriter.Destroy;
 BEGIN
-  IF NOT FFinalized THEN BEGIN
+  IF NOT FFinalized THEN
+  BEGIN
     Finalize;
     FFinalized := TRUE;
-    END;
+  END;
   IF FOwnsStream THEN
     FStream.Free;
   INHERITED Destroy;
@@ -800,8 +810,8 @@ BEGIN
   TRY
     AddStream (S, TarFilename, Date);
   FINALLY
-    S.Free
-    END;
+    S.Free;
+  END;
 END;
 
 
@@ -831,14 +841,15 @@ BEGIN
 
   WriteTarHeader (FStream, DirRec);
   BytesToRead := DirRec.Size;
-  WHILE BytesToRead > 0 DO BEGIN
+  WHILE BytesToRead > 0 DO
+  BEGIN
     BlockSize := BytesToRead;
     IF BlockSize > RECORDSIZE THEN BlockSize := RECORDSIZE;
     FillChar (Rec, RECORDSIZE, 0);
     Stream.Read (Rec, BlockSize);
     FStream.Write (Rec, RECORDSIZE);
     DEC (BytesToRead, BlockSize);
-    END;
+  END;
 END;
 
 
@@ -850,8 +861,8 @@ BEGIN
   TRY
     AddStream (S, TarFilename, FileDateGmt);
   FINALLY
-    S.Free
-    END
+    S.Free;
+  END;
 END;
 
 
