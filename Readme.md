@@ -1,10 +1,8 @@
-
- LibTar
-
 LibTar
 ======
+![](/Help/taricon.png)
 
-Native ObjectPascal Library for accessing **tar** (_T_ape _Ar_chive) files
+Native ObjectPascal Library for accessing **tar** (Tape Archive) files
 
 Original Author: Stefan Heymann, E-Mail [stefan@destructor.de](mailto:stefan@destructor.de)
 

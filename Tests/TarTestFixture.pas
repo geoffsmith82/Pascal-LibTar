@@ -14,7 +14,8 @@ type
   private
     FMemoryStream : TMemoryStream;
     FTarWriter : TTarWriter;
-    TA         : TTarArchive;
+    FTarArchive : TTarArchive;
+
   public
     [Setup]
     procedure Setup;
@@ -24,6 +25,8 @@ type
     procedure Test1;
     [Test]
     procedure Test2;
+    [Test]
+    procedure Test3;
     // Test with TestCase Attribute to supply parameters.
   end;
 
@@ -47,7 +50,7 @@ var
 begin
   for i := 0 to 100 do
   begin
-    FTarWriter.AddString('adsfadfadfdsfdsaf', 'test' + i.ToString, now);
+    FTarWriter.AddString(AnsiString('adsfadfadfdsfdsaf'), AnsiString('test' + i.ToString), now - 1001 + i);
   end;
   FMemoryStream.SaveToFile('test.tar');
 end;
@@ -59,15 +62,32 @@ var
 begin
   FMemoryStream.Position := 0;
   FMemoryStream.LoadFromFile('test.tar');
-  TA := TTarArchive.Create(FMemoryStream);
-  TA.Reset;
+  FTarArchive := TTarArchive.Create(FMemoryStream);
+  FTarArchive.Reset;
   i := 0;
-  while TA.FindNext(dirRec) do
+  while FTarArchive.FindNext(dirRec) do
   begin
     Inc(i);
   end;
   Assert.AreEqual(101, i, 'Filecount does not match');
+end;
 
+procedure TMyTestObject.Test3;
+var
+  i: Integer;
+  dirRec : TTarDirRec;
+  fs : TFileStream;
+begin
+// Note this uses a file on my hard disk which you wont have.  Just comment out this test
+  fs := TFileStream.Create('D:\Programming\Containers\mail1_2022-12-01_00-05.tar', fmOpenRead);
+  FTarArchive := TTarArchive.Create(fs);
+  FTarArchive.Reset;
+  i := 0;
+  while FTarArchive.FindNext(dirRec) do
+  begin
+    Inc(i);
+  end;
+  Assert.AreEqual(357671, i, 'Filecount does not match');
 end;
 
 initialization
